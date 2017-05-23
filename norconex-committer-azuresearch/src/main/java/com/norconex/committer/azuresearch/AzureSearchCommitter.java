@@ -174,9 +174,9 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
 
     /** Default Azure Search API version */
     public static final String DEFAULT_API_VERSION = "2016-09-01"; 
-    /** Default Azure key field */
+    /** Default Azure Search document key field */
     public static final String DEFAULT_AZURE_ID_FIELD = "id";
-    /** Default Azure content field */
+    /** Default Azure Search content field */
     public static final String DEFAULT_AZURE_CONTENT_FIELD = "content";
 
     private String endpoint;
