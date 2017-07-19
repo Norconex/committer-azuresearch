@@ -573,12 +573,15 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                         "Commit batch size cannot be greater than 1000.");
             }
             
-            String apiVersion = ObjectUtils.defaultIfNull(
+            String version = ObjectUtils.defaultIfNull(
                     getApiVersion(), DEFAULT_API_VERSION);
-            LOG.debug("Azure Search API Version: " + apiVersion);
-            client = HttpClientBuilder.create().build();
+            LOG.debug("Azure Search API Version: " + version);
+            client = HttpClientBuilder
+                    .create()
+                    .useSystemProperties()
+                    .build();
             restURL = getEndpoint() + "/indexes/" + getIndexName()
-                    + "/docs/index?api-version=" + getApiVersion();
+                    + "/docs/index?api-version=" + version;
         }
         return client;
     }

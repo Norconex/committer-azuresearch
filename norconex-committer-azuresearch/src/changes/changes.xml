@@ -7,6 +7,12 @@
   </properties>
   <body>
 
+    <release version="1.0.1-SNAPSHOT" date="2017-??-??" description="Initial release">
+      <action dev="essiembre" type="update">
+        Now uses system properties to configure HTTP connections. 
+      </action>
+    </release>
+
     <release version="1.0.0" date="2017-05-23" description="Initial release">
       <action dev="essiembre" type="add">
         Initial release.
