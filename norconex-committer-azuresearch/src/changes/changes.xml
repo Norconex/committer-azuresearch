@@ -8,7 +8,7 @@
   <body>
 
     <release version="1.0.1-SNAPSHOT" date="2017-??-??" description="Initial release">
-      <action dev="essiembre" type="update">
+      <action dev="essiembre" type="update" issue="1">
         Now uses system properties to configure HTTP connections. 
       </action>
     </release>
