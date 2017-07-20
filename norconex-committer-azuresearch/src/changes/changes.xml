@@ -7,9 +7,12 @@
   </properties>
   <body>
 
-    <release version="1.0.1-SNAPSHOT" date="2017-??-??" description="Initial release">
-      <action dev="essiembre" type="update" issue="1">
-        Now uses system properties to configure HTTP connections. 
+    <release version="1.1.0-SNAPSHOT" date="2017-??-??" description="Initial release">
+      <action dev="essiembre" type="add" issue="1">
+        New proxy configuration options.
+      </action>
+      <action dev="essiembre" type="update">
+        Maven dependency updates: Norconex Committer Core 2.1.2.
       </action>
     </release>
 

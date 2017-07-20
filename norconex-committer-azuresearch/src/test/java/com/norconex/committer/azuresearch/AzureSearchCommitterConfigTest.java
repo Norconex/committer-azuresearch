@@ -24,7 +24,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.norconex.commons.lang.config.XMLConfigurationUtil;
+import com.norconex.commons.lang.encrypt.EncryptionKey;
+import com.norconex.commons.lang.encrypt.EncryptionKey.Source;
 import com.norconex.commons.lang.log.CountingConsoleAppender;
+import com.norconex.commons.lang.net.ProxySettings;
 
 public class AzureSearchCommitterConfigTest {
 
@@ -46,6 +49,15 @@ public class AzureSearchCommitterConfigTest {
         committer.setDisableReferenceEncoding(true);
         committer.setIgnoreValidationErrors(true);
         committer.setIgnoreResponseErrors(true);
+        
+        ProxySettings ps = committer.getProxySettings();
+        ps.setProxyHost("myhost");
+        ps.setProxyPassword("mypassword");
+        ps.setProxyPasswordKey(new EncryptionKey("keyvalue", Source.KEY));
+        ps.setProxyPort(99);
+        ps.setProxyRealm("realm");
+        ps.setProxyScheme("sheme");
+        ps.setProxyUsername("username");        
         
         System.out.println("Writing/Reading this: " + committer);
         XMLConfigurationUtil.assertWriteRead(committer);

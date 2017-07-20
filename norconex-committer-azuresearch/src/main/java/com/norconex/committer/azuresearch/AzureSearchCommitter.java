@@ -51,6 +51,8 @@ import com.norconex.committer.core.CommitterException;
 import com.norconex.committer.core.IAddOperation;
 import com.norconex.committer.core.ICommitOperation;
 import com.norconex.committer.core.IDeleteOperation;
+import com.norconex.commons.lang.encrypt.EncryptionUtil;
+import com.norconex.commons.lang.net.ProxySettings;
 import com.norconex.commons.lang.time.DurationParser;
 import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
 
@@ -103,6 +105,40 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *       Maximum length is 128 characters.</li>
  * </ul>
  * 
+ * <h3>Password encryption in XML configuration:</h3>
+ * <p>
+ * The <code>proxyPassword</code> can take a password that has been
+ * encrypted using {@link EncryptionUtil} (or command-line encrypt.[bat|sh]).
+ * In order for the password to be decrypted properly by the crawler, you need
+ * to specify the encryption key used to encrypt it. The key can be stored
+ * in a few supported locations and a combination of
+ * <code>proxyPasswordKey</code>
+ * and <code>proxyPasswordKeySource</code> must be specified to properly
+ * locate the key. The supported sources are:
+ * </p>
+ * <table border="1" summary="">
+ *   <tr>
+ *     <th><code>proxyPasswordKeySource</code></th>
+ *     <th><code>proxyPasswordKey</code></th>
+ *   </tr>
+ *   <tr>
+ *     <td><code>key</code></td>
+ *     <td>The actual encryption key.</td>
+ *   </tr>
+ *   <tr>
+ *     <td><code>file</code></td>
+ *     <td>Path to a file containing the encryption key.</td>
+ *   </tr>
+ *   <tr>
+ *     <td><code>environment</code></td>
+ *     <td>Name of an environment variable containing the key.</td>
+ *   </tr>
+ *   <tr>
+ *     <td><code>property</code></td>
+ *     <td>Name of a JVM system property containing the key.</td>
+ *   </tr>
+ * </table>
+ * 
  * <h3>XML configuration usage:</h3>
  * <pre>
  *  &lt;committer class="com.norconex.committer.azuresearch.AzureSearchCommitter"&gt;
@@ -113,6 +149,16 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *      &lt;disableReferenceEncoding&gt;[false|true]&lt;/disableReferenceEncoding&gt;
  *      &lt;ignoreValidationErrors&gt;[false|true]&lt;/ignoreValidationErrors&gt;
  *      &lt;ignoreResponseErrors&gt;[false|true]&lt;/ignoreResponseErrors&gt;
+ *
+ *      &lt;proxyHost&gt;...&lt;/proxyHost&gt;
+ *      &lt;proxyPort&gt;...&lt;/proxyPort&gt;
+ *      &lt;proxyRealm&gt;...&lt;/proxyRealm&gt;
+ *      &lt;proxyScheme&gt;...&lt;/proxyScheme&gt;
+ *      &lt;proxyUsername&gt;...&lt;/proxyUsername&gt;
+ *      &lt;proxyPassword&gt;...&lt;/proxyPassword&gt;
+ *      &lt;!-- Use the following if password is encrypted. --&gt;
+ *      &lt;proxyPasswordKey&gt;(the encryption key or a reference to it)&lt;/proxyPasswordKey&gt;
+ *      &lt;proxyPasswordKeySource&gt;[key|file|environment|property]&lt;/proxyPasswordKeySource&gt;
  *
  *      &lt;sourceReferenceField keep="[false|true]"&gt;
  *         (Optional name of field that contains the document reference, when 
@@ -186,7 +232,8 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     private boolean disableReferenceEncoding;
     private boolean ignoreValidationErrors;
     private boolean ignoreResponseErrors;
-
+    private final ProxySettings proxySettings = new ProxySettings();
+    
     private CloseableHttpClient client;
     private String restURL;
     
@@ -326,6 +373,15 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         this.ignoreResponseErrors = ignoreResponseErrors;
     }    
 
+    /**
+     * Gets the proxy settings. Never <code>null</code>.
+     * @return proxy settings
+     * @since 1.1.0
+     */
+    public ProxySettings getProxySettings() {
+        return proxySettings;
+    }
+    
     @Override
     public void commit() {
         super.commit();
@@ -444,8 +500,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         }
     }
     
-    private String buildAddOperationJSON(IAddOperation add)
-            throws IOException {
+    private String buildAddOperationJSON(IAddOperation add) {
         String docId = add.getMetadata().getString(getTargetReferenceField());
         if (StringUtils.isBlank(docId)) {
             docId = add.getReference();
@@ -517,8 +572,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         throw new CommitterException(error);
     }
 
-    private String buildDeleteOperationJSON(IDeleteOperation del)
-            throws IOException {
+    private String buildDeleteOperationJSON(IDeleteOperation del) {
         String docId = Base64.encodeBase64URLSafeString(
                 del.getReference().getBytes());
         StringBuilder json = new StringBuilder();
@@ -576,16 +630,23 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             String version = ObjectUtils.defaultIfNull(
                     getApiVersion(), DEFAULT_API_VERSION);
             LOG.debug("Azure Search API Version: " + version);
-            client = HttpClientBuilder
-                    .create()
-                    .useSystemProperties()
-                    .build();
+            HttpClientBuilder httpBuilder = HttpClientBuilder.create();
+            buildHttpClient(httpBuilder);
+            client = httpBuilder.build();
             restURL = getEndpoint() + "/indexes/" + getIndexName()
                     + "/docs/index?api-version=" + version;
         }
         return client;
     }
 
+    protected void buildHttpClient(HttpClientBuilder builder) {
+        if (proxySettings.isSet()) {
+            builder.setProxy(proxySettings.createHttpHost());
+            builder.setDefaultCredentialsProvider(
+                    proxySettings.createCredentialsProvider());
+        }
+    }
+    
     @Override
     protected void saveToXML(XMLStreamWriter writer) throws XMLStreamException {
         EnhancedXMLStreamWriter w = new EnhancedXMLStreamWriter(writer);
@@ -598,6 +659,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         w.writeElementBoolean(
                 "ignoreValidationErrors", isIgnoreValidationErrors());
         w.writeElementBoolean("ignoreResponseErrors", isIgnoreResponseErrors());
+        proxySettings.saveProxyToXML(w);
     }
 
     @Override
@@ -612,6 +674,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                 isIgnoreValidationErrors()));
         setIgnoreResponseErrors(xml.getBoolean(
                 "ignoreResponseErrors", isIgnoreResponseErrors()));
+        proxySettings.loadProxyFromXML(xml);
     }
     
     @Override
