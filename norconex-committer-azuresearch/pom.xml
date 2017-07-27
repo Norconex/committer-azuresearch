@@ -28,6 +28,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>    
     <site.baseurl />
     <norconex-commons-lang.version>1.14.0-SNAPSHOT</norconex-commons-lang.version>
+    <httpclient.version>4.5.3</httpclient.version>
   </properties>
   <inceptionYear>2017</inceptionYear>
 
@@ -61,8 +62,13 @@
     <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.2</version>
-    </dependency>    
+        <version>${httpclient.version}</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient-win</artifactId>
+        <version>${httpclient.version}</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>

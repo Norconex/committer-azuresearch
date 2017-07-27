@@ -11,8 +11,12 @@
       <action dev="essiembre" type="add" issue="1">
         New proxy configuration options.
       </action>
+      <action dev="essiembre" type="add" issue="1">
+        New "useWindowsAuth" option for using integrated Windows Authentication.
+      </action>
       <action dev="essiembre" type="update">
-        Maven dependency updates: Norconex Committer Core 2.1.2.
+        Maven dependency updates: Norconex Committer Core 2.1.2, 
+        Apache HttpClient 4.5.3.
       </action>
     </release>
 

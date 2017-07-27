@@ -42,6 +42,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.WinHttpClients;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -149,6 +150,7 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *      &lt;disableReferenceEncoding&gt;[false|true]&lt;/disableReferenceEncoding&gt;
  *      &lt;ignoreValidationErrors&gt;[false|true]&lt;/ignoreValidationErrors&gt;
  *      &lt;ignoreResponseErrors&gt;[false|true]&lt;/ignoreResponseErrors&gt;
+ *      &lt;useWindowsAuth&gt;[false|true]&lt;/useWindowsAuth&gt;
  *
  *      &lt;proxyHost&gt;...&lt;/proxyHost&gt;
  *      &lt;proxyPort&gt;...&lt;/proxyPort&gt;
@@ -236,6 +238,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     
     private CloseableHttpClient client;
     private String restURL;
+    private boolean useWindowsAuth;
     
     /**
      * Constructor.
@@ -381,7 +384,22 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     public ProxySettings getProxySettings() {
         return proxySettings;
     }
-    
+
+    /**
+     * Whether to use integrated Windows Authentication (if applicable).
+     * @return <code>true</code> if using Windows Authentication
+     */
+    public boolean isUseWindowsAuth() {
+        return useWindowsAuth;
+    }
+    /**
+     * Sets whether to use integrated Windows Authentication (if applicable).
+     * @param useWindowsAuth <code>true</code> if using Windows Authentication
+     */
+    public void setUseWindowsAuth(boolean useWindowsAuth) {
+        this.useWindowsAuth = useWindowsAuth;
+    }
+
     @Override
     public void commit() {
         super.commit();
@@ -630,7 +648,13 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             String version = ObjectUtils.defaultIfNull(
                     getApiVersion(), DEFAULT_API_VERSION);
             LOG.debug("Azure Search API Version: " + version);
-            HttpClientBuilder httpBuilder = HttpClientBuilder.create();
+            
+            HttpClientBuilder httpBuilder;
+            if (useWindowsAuth && WinHttpClients.isWinAuthAvailable()) {
+                httpBuilder = WinHttpClients.custom();
+            } else {
+                httpBuilder = HttpClientBuilder.create();
+            }
             buildHttpClient(httpBuilder);
             client = httpBuilder.build();
             restURL = getEndpoint() + "/indexes/" + getIndexName()
@@ -654,6 +678,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         w.writeElementString("apiKey", getApiKey());
         w.writeElementString("apiVersion", getApiVersion());
         w.writeElementString("indexName", getIndexName());
+        w.writeElementBoolean("useWindowsAuth", isUseWindowsAuth());
         w.writeElementBoolean(
                 "disableReferenceEncoding", isDisableReferenceEncoding());
         w.writeElementBoolean(
@@ -668,6 +693,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         setApiKey(xml.getString("apiKey", getApiKey()));
         setApiVersion(xml.getString("apiVersion", getApiVersion()));
         setIndexName(xml.getString("indexName", getIndexName()));
+        setUseWindowsAuth(xml.getBoolean("useWindowsAuth", isUseWindowsAuth()));
         setDisableReferenceEncoding(xml.getBoolean("disableReferenceEncoding", 
                 isDisableReferenceEncoding()));
         setIgnoreValidationErrors(xml.getBoolean("ignoreValidationErrors", 
