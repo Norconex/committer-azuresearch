@@ -476,6 +476,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             post.setEntity(requestEntity);
             HttpResponse response = safeClient.execute(post);
             handleResponse(response);
+            post.releaseConnection();
             LOG.info("Done sending commit operations to Azure Search.");
         } catch (CommitterException e) {
             close();
@@ -669,6 +670,8 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             builder.setDefaultCredentialsProvider(
                     proxySettings.createCredentialsProvider());
         }
+        builder.setMaxConnTotal(20);
+        builder.setMaxConnPerRoute(10);
     }
     
     @Override
