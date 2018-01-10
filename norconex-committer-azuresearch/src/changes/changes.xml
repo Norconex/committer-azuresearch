@@ -7,7 +7,7 @@
   </properties>
   <body>
 
-    <release version="1.1.1-SNAPSHOT" date="2018-??-??" description="Bugfix release">
+    <release version="1.1.1" date="2018-01-09" description="Bugfix release">
       <action dev="essiembre" type="fix">
         Fixed connections not being released properly causing hanging.
       </action>
