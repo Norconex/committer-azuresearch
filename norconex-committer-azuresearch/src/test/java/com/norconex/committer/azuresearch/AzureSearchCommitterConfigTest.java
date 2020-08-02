@@ -1,4 +1,4 @@
-/* Copyright 2017 Norconex Inc.
+/* Copyright 2017-2020 Norconex Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package com.norconex.committer.azuresearch;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.log4j.Level;
@@ -49,7 +51,9 @@ public class AzureSearchCommitterConfigTest {
         committer.setDisableReferenceEncoding(true);
         committer.setIgnoreValidationErrors(true);
         committer.setIgnoreResponseErrors(true);
-        
+        committer.setArrayFields(".*");
+        committer.setArrayFieldsRegex(true);
+
         ProxySettings ps = committer.getProxySettings();
         ps.setProxyHost("myhost");
         ps.setProxyPassword("mypassword");
@@ -57,13 +61,60 @@ public class AzureSearchCommitterConfigTest {
         ps.setProxyPort(99);
         ps.setProxyRealm("realm");
         ps.setProxyScheme("sheme");
-        ps.setProxyUsername("username");        
-        
+        ps.setProxyUsername("username");
+
         System.out.println("Writing/Reading this: " + committer);
         XMLConfigurationUtil.assertWriteRead(committer);
     }
 
-    
+    @Test
+    public void testAppendArray() throws IOException {
+        AzureSearchCommitter c = new AzureSearchCommitter();
+        List<String> singleValue = Arrays.asList("v1");
+        List<String> multiValues = Arrays.asList("v1", "v2", "v3");
+
+        String expectedSingleAsArray = "\"f2\":[\"v1\"]";
+        String expectedSingleAsSingle = "\"f2\":\"v1\"";
+        String expectedMulti = "\"f2\":[\"v1\",\"v2\",\"v3\"]";
+
+        // Force array: YES.  Format: CSV.  Match: YES
+        c.setArrayFields("f1, f2, f3");
+        c.setArrayFieldsRegex(false);
+        assertAppend(c, singleValue, expectedSingleAsArray);
+        assertAppend(c, multiValues, expectedMulti);
+
+        // Force array: YES.  Format: REGEX.  Match: NO
+        c.setArrayFields("f1, f2, f3");
+        c.setArrayFieldsRegex(true);
+        assertAppend(c, singleValue, expectedSingleAsSingle);
+        assertAppend(c, multiValues, expectedMulti);
+
+        // Force array: YES.  Format: CSV.  Match: NO
+        c.setArrayFields("f.*");
+        c.setArrayFieldsRegex(false);
+        assertAppend(c, singleValue, expectedSingleAsSingle);
+        assertAppend(c, multiValues, expectedMulti);
+
+        // Force array: YES.  Format: REGEX.  Match: YES
+        c.setArrayFields("f.*");
+        c.setArrayFieldsRegex(true);
+        assertAppend(c, singleValue, expectedSingleAsArray);
+        assertAppend(c, multiValues, expectedMulti);
+
+        // Force array: NO.  Format: N/A.  Match: N/A
+        c.setArrayFields("");
+        c.setArrayFieldsRegex(true);
+        assertAppend(c, singleValue, expectedSingleAsSingle);
+        assertAppend(c, multiValues, expectedMulti);
+    }
+
+    private void assertAppend(
+            AzureSearchCommitter c, List<String> testValues, String expected) {
+        StringBuilder b = new StringBuilder();
+        c.append(b, "f2", testValues);
+        Assert.assertEquals(expected, b.toString());
+    }
+
     @Test
     public void testValidation() throws IOException {
         CountingConsoleAppender appender = new CountingConsoleAppender();
@@ -74,7 +125,7 @@ public class AzureSearchCommitterConfigTest {
         } finally {
             appender.stopCountingFor(XMLConfigurationUtil.class);
         }
-        Assert.assertEquals("Validation warnings/errors were found.", 
+        Assert.assertEquals("Validation warnings/errors were found.",
                 0, appender.getCount());
     }
 }

@@ -1,4 +1,4 @@
-/* Copyright 2017 Norconex Inc.
+/* Copyright 2017-2020 Norconex Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -26,6 +27,7 @@ import javax.xml.stream.XMLStreamWriter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -61,51 +63,65 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  * <p>
  * Commits documents to Microsoft Azure Search.
  * </p>
- * 
+ *
  * <h3>Document reference encoding</h3>
  * <p>
  * By default the document reference (Azure Search Document Key) is
  * encoded using URL-safe Base64 encoding. This is Azure Search recommended
  * approach when a document unique id can contain special characters
  * (e.g. a URL).  If you know your document references to be safe
- * (e.g. a sequence number), you can 
+ * (e.g. a sequence number), you can
  * set {@link #setDisableReferenceEncoding(boolean)} to <code>true</code>.
- * To otherwise store a reference value un-encoded, you can additionally 
+ * To otherwise store a reference value un-encoded, you can additionally
  * store it in a field other than your reference ("id") field.
- * </p>  
- * 
+ * </p>
+ *
+ * <h3>Single vs multiple values</h3>
+ * <p>
+ * Fields with single value will be sent as such, while multi-value fields
+ * are sent as array. If you have a field defined as an array in Azure Search,
+ * sending a single value may cause an error.
+ * </p>
+ * <p>
+ * <b>Since 1.2.0</b>, it is now possible to values to always
+ * be sent as arrays for specific fields. This is done thanks to
+ * {@link #setArrayFields(String)}. It expects Comma-Separated-Value list
+ * or a regular expression, depending of the value you set for
+ * {@link #setArrayFieldsRegex(boolean)}.
+ * </p>
+ *
  * <h3>Field names and errors</h3>
  * <p>
- * Azure Search will produce an error if any of the documents in a submitted 
+ * Azure Search will produce an error if any of the documents in a submitted
  * batch contains one or more fields with invalid characters.  To prevent
  * sending those in vain, the committer will validate your fields
  * and throw an exception upon encountering an invalid one.
- * To prevent exceptions from being thrown, you can set 
+ * To prevent exceptions from being thrown, you can set
  * {@link #setIgnoreValidationErrors(boolean)} to <code>true</code> to
  * log those errors instead.
  * </p>
  * <p>
- * An exception will also be thrown for errors returned by Azure Search 
+ * An exception will also be thrown for errors returned by Azure Search
  * (e.g. a field is not defined in your
  * Azure Search schema). To also log those errors instead of throwing an
  * exception, you can set {@link #setIgnoreResponseErrors(boolean)}
- * to <code>true</code>. 
+ * to <code>true</code>.
  * </p>
  * <h4>Field naming rules</h4>
  * <p>
  * Those are the field naming rules mandated for Azure Search (in force
- * for Azure Search version 2016-09-01): 
- * Search version  
+ * for Azure Search version 2016-09-01):
+ * Search version
  * </p>
  * <ul>
- *   <li><b>Document reference (ID):</b> Letters, numbers, dashes ("-"), 
+ *   <li><b>Document reference (ID):</b> Letters, numbers, dashes ("-"),
  *       underscores ("_"), and equal signs ("="). First character cannot be
  *       an underscore.</li>
  *   <li><b>Document field name:</b> Letters, numbers, underscores ("_"). First
- *       character must be a letter. Cannot start with "azureSearch". 
+ *       character must be a letter. Cannot start with "azureSearch".
  *       Maximum length is 128 characters.</li>
  * </ul>
- * 
+ *
  * <h3>Password encryption in XML configuration:</h3>
  * <p>
  * The <code>proxyPassword</code> can take a password that has been
@@ -139,7 +155,7 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *     <td>Name of a JVM system property containing the key.</td>
  *   </tr>
  * </table>
- * 
+ *
  * <h3>XML configuration usage:</h3>
  * <pre>
  *  &lt;committer class="com.norconex.committer.azuresearch.AzureSearchCommitter"&gt;
@@ -151,6 +167,10 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *      &lt;ignoreValidationErrors&gt;[false|true]&lt;/ignoreValidationErrors&gt;
  *      &lt;ignoreResponseErrors&gt;[false|true]&lt;/ignoreResponseErrors&gt;
  *      &lt;useWindowsAuth&gt;[false|true]&lt;/useWindowsAuth&gt;
+ *      &lt;arrayFields regex="[false|true]"&gt;
+ *          (Optional fields to be forcefully sent as array, even if single
+ *           value. Unless "regex" is true, expects a CSV list of field names.)
+ *      &lt;/arrayFields&gt;
  *
  *      &lt;proxyHost&gt;...&lt;/proxyHost&gt;
  *      &lt;proxyPort&gt;...&lt;/proxyPort&gt;
@@ -163,20 +183,20 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *      &lt;proxyPasswordKeySource&gt;[key|file|environment|property]&lt;/proxyPasswordKeySource&gt;
  *
  *      &lt;sourceReferenceField keep="[false|true]"&gt;
- *         (Optional name of field that contains the document reference, when 
+ *         (Optional name of field that contains the document reference, when
  *         the default document reference is not used.  The reference value
- *         will be mapped to the Azure Search ID field. 
- *         Once re-mapped, this metadata source field is 
+ *         will be mapped to the Azure Search ID field.
+ *         Once re-mapped, this metadata source field is
  *         deleted, unless "keep" is set to <code>true</code>.)
  *      &lt;/sourceReferenceField&gt;
  *      &lt;targetReferenceField&gt;
- *         (Name of Azure Search target field where the store a document unique 
- *         identifier (sourceReferenceField).  If not specified, 
- *         default is "id".) 
+ *         (Name of Azure Search target field where the store a document unique
+ *         identifier (sourceReferenceField).  If not specified,
+ *         default is "id".)
  *      &lt;/targetReferenceField&gt;
  *      &lt;sourceContentField keep="[false|true]"&gt;
- *         (If you wish to use a metadata field to act as the document 
- *         "content", you can specify that field here.  Default 
+ *         (If you wish to use a metadata field to act as the document
+ *         "content", you can specify that field here.  Default
  *         does not take a metadata field but rather the document content.
  *         Once re-mapped, the metadata source field is deleted,
  *         unless "keep" is set to <code>true</code>.)
@@ -197,14 +217,14 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  * </pre>
  * <p>
  * XML configuration entries expecting millisecond durations
- * can be provided in human-readable format (English only), as per 
+ * can be provided in human-readable format (English only), as per
  * {@link DurationParser} (e.g., "5 minutes and 30 seconds" or "5m30s").
  * </p>
- * 
+ *
  * <h4>Usage example:</h4>
  * <p>
- * The following example uses the minimum required settings:.  
- * </p> 
+ * The following example uses the minimum required settings:.
+ * </p>
  * <pre>
  *  &lt;committer class="com.norconex.committer.azuresearch.AzureSearchCommitter"&gt;
  *      &lt;endpoint&gt;https://example.search.windows.net&lt;/endpoint&gt;
@@ -212,16 +232,16 @@ import com.norconex.commons.lang.xml.EnhancedXMLStreamWriter;
  *      &lt;indexName&gt;sample-index&lt;/indexName&gt;
  *  &lt;/committer&gt;
  * </pre>
- *  
+ *
  * @author Pascal Essiembre
  */
 public class AzureSearchCommitter extends AbstractMappedCommitter {
 
-    private static final Logger LOG = 
+    private static final Logger LOG =
             LogManager.getLogger(AzureSearchCommitter.class);
 
     /** Default Azure Search API version */
-    public static final String DEFAULT_API_VERSION = "2016-09-01"; 
+    public static final String DEFAULT_API_VERSION = "2016-09-01";
     /** Default Azure Search document key field */
     public static final String DEFAULT_AZURE_ID_FIELD = "id";
     /** Default Azure Search content field */
@@ -234,12 +254,15 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     private boolean disableReferenceEncoding;
     private boolean ignoreValidationErrors;
     private boolean ignoreResponseErrors;
+    private String arrayFields;
+    private boolean arrayFieldsRegex;
+
     private final ProxySettings proxySettings = new ProxySettings();
-    
+
     private CloseableHttpClient client;
     private String restURL;
     private boolean useWindowsAuth;
-    
+
     /**
      * Constructor.
      */
@@ -248,7 +271,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         setTargetReferenceField(DEFAULT_AZURE_ID_FIELD);
         setTargetContentField(DEFAULT_AZURE_CONTENT_FIELD);
     }
-    
+
 	/**
      * Gets the index name.
      * @return index name
@@ -265,8 +288,8 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     }
 
     /**
-     * Gets the Azure Search endpoint 
-     * (https://[service name].search.windows.net). 
+     * Gets the Azure Search endpoint
+     * (https://[service name].search.windows.net).
      * @return Azure Search endpoint
      */
     public String getEndpoint() {
@@ -297,7 +320,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     }
 
     /**
-     * Gets the Azure API admin key.  
+     * Gets the Azure API admin key.
      * @return Azure API admin key
      */
     public String getApiKey() {
@@ -310,7 +333,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
     }
-    
+
     /**
      * Whether to disable document reference encoding. By default, references
      * are encoded using a URL-safe Base64 encoding.  When <code>true</code>,
@@ -321,11 +344,11 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         return disableReferenceEncoding;
     }
     /**
-     * Sets whether to disable document reference encoding. When 
-     * <code>false</code>, references are encoded using a URL-safe Base64 
-     * encoding.  When <code>true</code>, document references will be sent as 
+     * Sets whether to disable document reference encoding. When
+     * <code>false</code>, references are encoded using a URL-safe Base64
+     * encoding.  When <code>true</code>, document references will be sent as
      * is if they pass validation.
-     * @param disableReferenceEncoding <code>true</code> if disabling 
+     * @param disableReferenceEncoding <code>true</code> if disabling
      *        reference encoding
      */
     public void setDisableReferenceEncoding(boolean disableReferenceEncoding) {
@@ -333,9 +356,9 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     }
 
     /**
-     * Whether to ignore validation errors.  By default, an exception is 
+     * Whether to ignore validation errors.  By default, an exception is
      * thrown if a document contains a field that Azure Search will reject.
-     * When <code>true</code> the validation errors are logged 
+     * When <code>true</code> the validation errors are logged
      * instead and the faulty field or document is not committed.
      * @return <code>true</code> when ignoring validation errors
      */
@@ -343,21 +366,21 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         return ignoreValidationErrors;
     }
     /**
-     * Sets whether to ignore validation errors.  
-     * When <code>false</code>, an exception is 
-     * thrown if a document contains a field that Azure Search will reject.  
-     * When <code>true</code> the validation errors are logged 
+     * Sets whether to ignore validation errors.
+     * When <code>false</code>, an exception is
+     * thrown if a document contains a field that Azure Search will reject.
+     * When <code>true</code> the validation errors are logged
      * instead and the faulty field or document is not committed.
-     * @param ignoreValidationErrors <code>true</code> when ignoring validation 
+     * @param ignoreValidationErrors <code>true</code> when ignoring validation
      *        errors
      */
     public void setIgnoreValidationErrors(boolean ignoreValidationErrors) {
         this.ignoreValidationErrors = ignoreValidationErrors;
     }
-    
+
     /**
-     * Whether to ignore response errors.  By default, an exception is 
-     * thrown if the Azure Search response contains an error.  
+     * Whether to ignore response errors.  By default, an exception is
+     * thrown if the Azure Search response contains an error.
      * When <code>true</code> the errors are logged instead.
      * @return <code>true</code> when ignoring response errors
      */
@@ -365,16 +388,16 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         return ignoreResponseErrors;
     }
     /**
-     * Sets whether to ignore response errors.  
-     * When <code>false</code>, an exception is 
-     * thrown if the Azure Search response contains an error.  
+     * Sets whether to ignore response errors.
+     * When <code>false</code>, an exception is
+     * thrown if the Azure Search response contains an error.
      * When <code>true</code> the errors are logged instead.
-     * @param ignoreResponseErrors <code>true</code> when ignoring response 
+     * @param ignoreResponseErrors <code>true</code> when ignoring response
      *        errors
      */
     public void setIgnoreResponseErrors(boolean ignoreResponseErrors) {
         this.ignoreResponseErrors = ignoreResponseErrors;
-    }    
+    }
 
     /**
      * Gets the proxy settings. Never <code>null</code>.
@@ -400,6 +423,50 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         this.useWindowsAuth = useWindowsAuth;
     }
 
+    /**
+     * Gets fields which values should always be treated as array.
+     * Expects a comma-separated-value list or regular expression, based
+     * on the returned value of {@link #isArrayFieldsRegex()}.
+     * @return list of fields or regular expression matching fields
+     * @since 1.2.0
+     * @see #isArrayFieldsRegex()
+     */
+    public String getArrayFields() {
+        return arrayFields;
+    }
+    /**
+     * Sets fields which values should always be treated as array.
+     * Either a comma-separated-value list or regular expression, based
+     * on the returned value of {@link #isArrayFieldsRegex()}.
+     * @param arrayFields list of fields or regular expression matching fields
+     * @since 1.2.0
+     * @see #setArrayFieldsRegex(boolean)
+     */
+    public void setArrayFields(String arrayFields) {
+        this.arrayFields = arrayFields;
+    }
+
+    /**
+     * Gets whether the list of fields to be always treated as array
+     * is represented as regular expression.
+     * @return <code>true</code> if regular expression
+     * @since 1.2.0
+     * @see #getArrayFields()
+     */
+    public boolean isArrayFieldsRegex() {
+        return arrayFieldsRegex;
+    }
+    /**
+     * Sets whether the list of fields to be always treated as array
+     * is represented as regular expression.
+     * @param arrayFieldsRegex <code>true</code> if regular expression
+     * @since 1.2.0
+     * @see #setArrayFields(String)
+     */
+    public void setArrayFieldsRegex(boolean arrayFieldsRegex) {
+        this.arrayFieldsRegex = arrayFieldsRegex;
+    }
+
     @Override
     public void commit() {
         super.commit();
@@ -409,7 +476,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
     //TODO The following is a workaround to not having
     // a close() method (or equivalent) on the Committers yet.
     // So we check that the caller is not itself, which means it should
-    // be the parent framework, which should in theory, call this only 
+    // be the parent framework, which should in theory, call this only
     // once. This is safe to do as the worst case scenario is that a new
     // client is re-created.
     // Remove this method once proper init/close is added to Committers
@@ -428,12 +495,12 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         client = null;
         LOG.info("Azure Search REST API Http Client closed.");
     }
-    
+
     @Override
     protected void commitBatch(List<ICommitOperation> batch) {
         HttpClient safeClient = nullSafeHttpClient();
-        
-        LOG.info("Sending " + batch.size() 
+
+        LOG.info("Sending " + batch.size()
                 + " commit operations to Azure Search.");
         try {
             boolean first = true;
@@ -443,7 +510,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                 if (op instanceof IAddOperation) {
                     toAppend = buildAddOperationJSON((IAddOperation) op);
                 } else if (op instanceof IDeleteOperation) {
-                    toAppend = buildDeleteOperationJSON((IDeleteOperation) op); 
+                    toAppend = buildDeleteOperationJSON((IDeleteOperation) op);
                 } else {
                     close();
                     throw new CommitterException("Unsupported operation:" + op);
@@ -456,7 +523,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                     first = false;
                 }
             }
-            
+
             if (json.length() == 0) {
                 LOG.warn("No documents were valid. Nothing committed.");
                 return;
@@ -464,7 +531,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
 
             json.insert(0, "{\"value\":[\n");
             json.append("\n]}\n");
-            
+
             if (LOG.isTraceEnabled()) {
                 LOG.trace("JSON POST:\n" + StringUtils.trim(json.toString()));
             }
@@ -488,7 +555,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         }
     }
 
-    private void handleResponse(HttpResponse response) 
+    private void handleResponse(HttpResponse response)
             throws IOException {
         HttpEntity respEntity = response.getEntity();
         String responseAsString = "";
@@ -497,7 +564,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                     respEntity.getContent(), StandardCharsets.UTF_8);
         }
         int statusCode = response.getStatusLine().getStatusCode();
-        if (statusCode != HttpStatus.SC_OK 
+        if (statusCode != HttpStatus.SC_OK
                 && statusCode != HttpStatus.SC_CREATED) {
             String error = "Invalid HTTP response: \""
                     + response.getStatusLine()
@@ -507,10 +574,10 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             } else {
                 close();
                 throw new CommitterException(error);
-            }            
+            }
         } else {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Azure Search response status: " 
+                LOG.debug("Azure Search response status: "
                         + response.getStatusLine());
             }
             if (LOG.isTraceEnabled()) {
@@ -518,13 +585,13 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             }
         }
     }
-    
+
     private String buildAddOperationJSON(IAddOperation add) {
         String docId = add.getMetadata().getString(getTargetReferenceField());
         if (StringUtils.isBlank(docId)) {
             docId = add.getReference();
         }
-        
+
         // if allow unsafe... do not encode
         if (disableReferenceEncoding) {
             if (!validateDocumentKey(docId)) {
@@ -533,14 +600,14 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         } else {
             docId = Base64.encodeBase64URLSafeString(docId.getBytes());
         }
-        
+
         StringBuilder json = new StringBuilder();
         json.append("{\"@search.action\": \"upload\",");
         append(json, getTargetReferenceField(), docId);
         for (Entry<String, List<String>> entry : add.getMetadata().entrySet()) {
             String field = entry.getKey();
-            
-            // Since target ID was already added (needs to be first), we do 
+
+            // Since target ID was already added (needs to be first), we do
             // not add it again here
             if (Objects.equals(getTargetReferenceField(), field)) {
                 continue;
@@ -582,7 +649,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         }
         return true;
     }
-    
+
     private boolean validationError(String error) {
         if (isIgnoreValidationErrors()) {
             LOG.error(error);
@@ -601,11 +668,17 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         return json.toString();
     }
 
-    private void append(StringBuilder json, String field, List<String> values) {
-        if (values.size() == 1) {
+    protected void append(
+            StringBuilder json, String field, List<String> values) {
+        if (values.isEmpty()) {
+            return;
+        }
+
+        if (values.size() == 1 && !forceArray(field)) {
             append(json, field, values.get(0));
             return;
         }
+
         json.append('"')
             .append(StringEscapeUtils.escapeJson(field))
             .append("\":[");
@@ -621,7 +694,17 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         }
         json.append(']');
     }
-    
+
+    private boolean forceArray(String field) {
+        if (StringUtils.isBlank(arrayFields)) {
+            return false;
+        }
+        if (arrayFieldsRegex) {
+            return Pattern.compile(arrayFields).matcher(field).matches();
+        }
+        return ArrayUtils.contains(arrayFields.split("\\s*,\\s*"), field);
+    }
+
     private void append(StringBuilder json, String field, String value) {
         json.append('"')
             .append(StringEscapeUtils.escapeJson(field))
@@ -629,7 +712,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
             .append(StringEscapeUtils.escapeJson(value))
             .append("\"");
     }
-    
+
     private synchronized CloseableHttpClient nullSafeHttpClient() {
         if (client == null) {
             if (StringUtils.isBlank(getEndpoint())) {
@@ -645,11 +728,11 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                 throw new CommitterException(
                         "Commit batch size cannot be greater than 1000.");
             }
-            
+
             String version = ObjectUtils.defaultIfNull(
                     getApiVersion(), DEFAULT_API_VERSION);
             LOG.debug("Azure Search API Version: " + version);
-            
+
             HttpClientBuilder httpBuilder;
             if (useWindowsAuth && WinHttpClients.isWinAuthAvailable()) {
                 httpBuilder = WinHttpClients.custom();
@@ -673,7 +756,7 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         builder.setMaxConnTotal(20);
         builder.setMaxConnPerRoute(10);
     }
-    
+
     @Override
     protected void saveToXML(XMLStreamWriter writer) throws XMLStreamException {
         EnhancedXMLStreamWriter w = new EnhancedXMLStreamWriter(writer);
@@ -686,6 +769,8 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
                 "disableReferenceEncoding", isDisableReferenceEncoding());
         w.writeElementBoolean(
                 "ignoreValidationErrors", isIgnoreValidationErrors());
+        w.writeElementString("arrayFields", getArrayFields());
+        w.writeElementBoolean("arrayFieldsRegex", isArrayFieldsRegex());
         w.writeElementBoolean("ignoreResponseErrors", isIgnoreResponseErrors());
         proxySettings.saveProxyToXML(w);
     }
@@ -697,15 +782,18 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         setApiVersion(xml.getString("apiVersion", getApiVersion()));
         setIndexName(xml.getString("indexName", getIndexName()));
         setUseWindowsAuth(xml.getBoolean("useWindowsAuth", isUseWindowsAuth()));
-        setDisableReferenceEncoding(xml.getBoolean("disableReferenceEncoding", 
+        setDisableReferenceEncoding(xml.getBoolean("disableReferenceEncoding",
                 isDisableReferenceEncoding()));
-        setIgnoreValidationErrors(xml.getBoolean("ignoreValidationErrors", 
+        setIgnoreValidationErrors(xml.getBoolean("ignoreValidationErrors",
                 isIgnoreValidationErrors()));
         setIgnoreResponseErrors(xml.getBoolean(
                 "ignoreResponseErrors", isIgnoreResponseErrors()));
+        setArrayFields(xml.getString("arrayFields", getArrayFields()));
+        setArrayFieldsRegex(xml.getBoolean(
+                "arrayFieldsRegex", isArrayFieldsRegex()));
         proxySettings.loadProxyFromXML(xml);
     }
-    
+
     @Override
     public boolean equals(final Object other) {
         return EqualsBuilder.reflectionEquals(this, other, "client", "restURL");
@@ -719,5 +807,5 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         return new ReflectionToStringBuilder(
                 this, ToStringStyle.SHORT_PREFIX_STYLE)
             .setExcludeFieldNames("client", "restURL").toString();
-    }    
+    }
 }

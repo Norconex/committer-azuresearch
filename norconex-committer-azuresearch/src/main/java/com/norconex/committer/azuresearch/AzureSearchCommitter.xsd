@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-   Copyright 2017 Norconex Inc.
+   Copyright 2017-2020 Norconex Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,11 +25,13 @@
           <xs:all>
             <xs:element name="endpoint" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
             <xs:element name="indexName" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
+            <xs:element name="useWindowsAuth" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="apiKey" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
             <xs:element name="apiVersion" type="nonEmptyString" minOccurs="0" maxOccurs="1" />
             <xs:element name="disableReferenceEncoding" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="ignoreValidationErrors" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="ignoreResponseErrors" type="xs:boolean" minOccurs="0" maxOccurs="1" />
+            <xs:element name="arrayFields" type="arrayFieldsType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="proxyHost" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
             <xs:element name="proxyPort" type="xs:int" minOccurs="0" maxOccurs="1"/>
             <xs:element name="proxyRealm" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
@@ -43,6 +45,14 @@
       </xs:complexContent>
     </xs:complexType>
   </xs:element>
+
+  <xs:complexType name="arrayFieldsType">
+    <xs:simpleContent>
+      <xs:extension base="nonEmptyString">
+        <xs:attribute name="regex" type="xs:boolean"></xs:attribute>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
 
   <xs:simpleType name="nonEmptyString">
     <xs:restriction base="xs:string">
