@@ -1,5 +1,5 @@
 Norconex Microsoft Azure Search Committer
-Copyright 2017 Norconex Inc.
+Copyright 2017-2020 Norconex Inc.
 
 General Information:
 ====================
@@ -8,7 +8,7 @@ For any inquiries about Norconex Microsoft Azure Search Committer, please
 contact Norconex Inc. at info@norconex.com.
 
 This product website and documentation is located at:
-https://www.norconex.com/collectors/committer-azuresearch/
+https://opensource.norconex.com/committers/azuresearch/
 
 Norconex licenses:
 ==================

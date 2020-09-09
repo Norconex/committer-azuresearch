@@ -238,8 +238,8 @@
           <source>1.8</source>
           <detectLinks>false</detectLinks>
           <links>
-            <link>https://www.norconex.com/product/commons-lang/apidocs/</link>
-            <link>https://www.norconex.com/collectors/committer-core/latest/apidocs/</link>
+            <link>https://opensource.norconex.com/commons/lang/v1/apidocs/</link>
+            <link>https://opensource.norconex.com/committers/core/v2/apidocs/</link>
             <link>https://commons.apache.org/proper/commons-configuration/javadocs/v1.10/apidocs/</link>
           </links>
         </configuration>
@@ -438,8 +438,8 @@
           <source>1.8</source>
           <detectLinks>false</detectLinks>          
           <links>
-            <link>https://www.norconex.com/product/commons-lang/apidocs/</link>
-            <link>https://www.norconex.com/collectors/committer-core/latest/apidocs/</link>
+            <link>https://opensource.norconex.com/commons/lang/v1/apidocs/</link>
+            <link>https://opensource.norconex.com/committers/core/v2/apidocs/</link>
             <link>https://commons.apache.org/proper/commons-configuration/javadocs/v1.10/apidocs/</link>
           </links>          
         </configuration>
@@ -457,7 +457,7 @@
     </plugins>
   </reporting>
 
-  <url>https://www.norconex.com/collectors/committer-azuresearch</url>
+  <url>https://opensource.norconex.com/committers/azuresearch</url>
   <organization>
     <name>Norconex Inc.</name>
     <url>https://www.norconex.com</url>
