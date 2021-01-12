@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-   Copyright 2017-2020 Norconex Inc.
+   Copyright 2017-2021 Norconex Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,30 +16,27 @@
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-  <xs:include schemaLocation="/com/norconex/committer/core/AbstractMappedCommitter.xsd"></xs:include>
+  <xs:include schemaLocation="/com/norconex/commons/lang/net/ProxySettings.xsd"></xs:include>
+  <xs:include schemaLocation="/com/norconex/committer/core3/batch/AbstractBatchCommitter.xsd"></xs:include>
   
   <xs:element name="committer">
     <xs:complexType>
       <xs:complexContent> 
-        <xs:extension base="AbstractMappedCommitter">
+        <xs:extension base="AbstractBatchCommitter">
           <xs:all>
-            <xs:element name="endpoint" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
-            <xs:element name="indexName" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
+            <xs:element name="endpoint" type="xs:string" minOccurs="1" maxOccurs="1" />
+            <xs:element name="indexName" type="xs:string" minOccurs="1" maxOccurs="1" />
             <xs:element name="useWindowsAuth" type="xs:boolean" minOccurs="0" maxOccurs="1" />
-            <xs:element name="apiKey" type="nonEmptyString" minOccurs="1" maxOccurs="1" />
-            <xs:element name="apiVersion" type="nonEmptyString" minOccurs="0" maxOccurs="1" />
-            <xs:element name="disableReferenceEncoding" type="xs:boolean" minOccurs="0" maxOccurs="1" />
+            <xs:element name="apiKey" type="xs:string" minOccurs="1" maxOccurs="1" />
+            <xs:element name="apiVersion" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="disableDocKeyEncoding" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="ignoreValidationErrors" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="ignoreResponseErrors" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="arrayFields" type="arrayFieldsType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyHost" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyPort" type="xs:int" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyRealm" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyScheme" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyUsername" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyPassword" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyPasswordKey" type="nonEmptyString" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="proxyPasswordKeySource" type="passwordKeySourceType" minOccurs="0" maxOccurs="1"/>
+            <xs:element ref="proxySettings" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="sourceKeyField" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="targetKeyField" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="targetContentField" type="xs:string" minOccurs="0" maxOccurs="1" />
           </xs:all>
         </xs:extension> 
       </xs:complexContent>
@@ -48,17 +45,11 @@
 
   <xs:complexType name="arrayFieldsType">
     <xs:simpleContent>
-      <xs:extension base="nonEmptyString">
+      <xs:extension base="xs:string">
         <xs:attribute name="regex" type="xs:boolean"></xs:attribute>
       </xs:extension>
     </xs:simpleContent>
   </xs:complexType>
-
-  <xs:simpleType name="nonEmptyString">
-    <xs:restriction base="xs:string">
-      <xs:minLength value="1"/>
-    </xs:restriction>
-  </xs:simpleType>
   
   <xs:simpleType name="passwordKeySourceType">
     <xs:restriction base="xs:string">
