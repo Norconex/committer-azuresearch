@@ -44,7 +44,8 @@ import com.norconex.commons.lang.xml.XML;
  * approach when a document unique id can contain special characters
  * (e.g. a URL).  If you know your document references to be safe
  * (e.g. a sequence number), you can
- * set {@link #setDisableDocKeyEncoding(boolean)} to <code>true</code>.
+ * set {@link AzureSearchCommitterConfig#setDisableDocKeyEncoding(boolean)}
+ * to <code>true</code>.
  * To otherwise store a reference value un-encoded, you can additionally
  * store it in a field other than your reference ("id") field.
  * </p>
@@ -58,9 +59,10 @@ import com.norconex.commons.lang.xml.XML;
  * <p>
  * It is possible for values to always
  * be sent as arrays for specific fields. This is done using
- * {@link #setArrayFields(String)}. It expects comma-separated-value list
+ * {@link AzureSearchCommitterConfig#setArrayFields(String)}.
+ * It expects comma-separated-value list
  * or a regular expression, depending of the value you set for
- * {@link #setArrayFieldsRegex(boolean)}.
+ * {@link AzureSearchCommitterConfig#setArrayFieldsRegex(boolean)}.
  * </p>
  *
  * <h3>Field names and errors</h3>
@@ -70,14 +72,15 @@ import com.norconex.commons.lang.xml.XML;
  * sending those in vain, the committer will validate your fields
  * and throw an exception upon encountering an invalid one.
  * To prevent exceptions from being thrown, you can set
- * {@link #setIgnoreValidationErrors(boolean)} to <code>true</code> to
- * log those errors instead.
+ * {@link AzureSearchCommitterConfig#setIgnoreValidationErrors(boolean)}
+ * to <code>true</code> to log those errors instead.
  * </p>
  * <p>
  * An exception will also be thrown for errors returned by Azure Search
  * (e.g. a field is not defined in your
  * Azure Search schema). To also log those errors instead of throwing an
- * exception, you can set {@link #setIgnoreResponseErrors(boolean)}
+ * exception, you can set
+ * {@link AzureSearchCommitterConfig#setIgnoreResponseErrors(boolean)}
  * to <code>true</code>.
  * </p>
  * <h4>Field naming rules</h4>
