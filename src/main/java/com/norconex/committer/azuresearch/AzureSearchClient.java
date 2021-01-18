@@ -65,7 +65,7 @@ import com.norconex.commons.lang.security.Credentials;
 
 /**
  * <p>
- * Simple client Microsoft Azure Search.
+ * Simple Microsoft Azure Search client.
  * </p>
  * @author Pascal Essiembre
  */
