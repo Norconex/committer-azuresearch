@@ -158,7 +158,7 @@
   <distributionManagement>
     <site>
       <id>norconex-site-deployment</id>
-      <url>${site.baseurl}/committers/idol/v3</url>
+      <url>${site.baseurl}/committers/azuresearch/v2</url>
     </site>
   </distributionManagement>
 
