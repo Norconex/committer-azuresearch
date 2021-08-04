@@ -159,6 +159,7 @@ import com.norconex.commons.lang.xml.XML;
  *
  * @author Pascal Essiembre
  */
+@SuppressWarnings("javadoc")
 public class AzureSearchCommitter extends AbstractBatchCommitter {
 
     private final AzureSearchCommitterConfig config;
