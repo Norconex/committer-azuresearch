@@ -772,7 +772,11 @@ public class AzureSearchCommitter extends AbstractMappedCommitter {
         w.writeElementString("arrayFields", getArrayFields());
         w.writeElementBoolean("arrayFieldsRegex", isArrayFieldsRegex());
         w.writeElementBoolean("ignoreResponseErrors", isIgnoreResponseErrors());
-        proxySettings.saveProxyToXML(w);
+        try {
+            proxySettings.saveProxyToXML(w);
+        } catch (IOException e) {
+            throw new XMLStreamException("Could not save proxy settings.", e);
+        }
     }
 
     @Override
