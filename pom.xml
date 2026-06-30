@@ -1,4 +1,4 @@
-<!--
+﻿<!--
    Copyright 2013-2021 Norconex Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,36 +13,30 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-  http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0    http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.norconex.commons</groupId>
-    <artifactId>norconex-commons-maven-parent</artifactId>
-    <version>1.0.0</version>
+    <groupId>com.norconex.collectors.v3</groupId>
+    <artifactId>norconex-collector-parent</artifactId>
+    <version>3.2.0-SNAPSHOT</version>
   </parent>
-  <groupId>com.norconex.collectors</groupId>
+  <groupId>com.norconex.collectors.v3</groupId>
   <artifactId>norconex-committer-azuresearch</artifactId>
-  <version>2.0.0</version>
+  <version>3.2.0-SNAPSHOT</version>
   <name>Norconex Committer Azure Search</name>
   <description>
     Microsoft Azure Search implementation of Norconex Committer.
   </description>
-
   <inceptionYear>2017</inceptionYear>
-
   <dependencies>
-  
     <dependency>
       <groupId>com.norconex.commons</groupId>
       <artifactId>norconex-commons-lang</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.norconex.collectors</groupId>
+      <groupId>com.norconex.collectors.v3</groupId>
       <artifactId>norconex-committer-core</artifactId>
     </dependency>
-    
     <dependency>
       <groupId>org.apache.httpcomponents.client5</groupId>
       <artifactId>httpclient5</artifactId>
@@ -52,7 +46,6 @@
       <artifactId>httpclient5-win</artifactId>
       <version>${httpclient5.version}</version>
     </dependency>
-    
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
@@ -62,7 +55,7 @@
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
       <scope>test</scope>
-    </dependency> 
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -74,7 +67,6 @@
       <version>5.11.1</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>com.norconex.commons</groupId>
       <artifactId>norconex-commons-lang</artifactId>
@@ -82,16 +74,13 @@
       <type>zip</type>
       <scope>provided</scope>
     </dependency>
-
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
@@ -100,35 +89,30 @@
                we need to include that dependency here. -->
           <tagletArtifacts combine.children="append">
             <tagletArtifact>
-              <groupId>com.norconex.collectors</groupId>
+              <groupId>com.norconex.collectors.v3</groupId>
               <artifactId>norconex-committer-core</artifactId>
-              <version>${norconex-committer-core.version}</version>
+              <version>${project.version}</version>
             </tagletArtifact>
           </tagletArtifacts>
         </configuration>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
       </plugin>
-    
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
       </plugin>
-      
       <!--  Use VM argument -Dgpg.skip=true to disable GPG signing. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
       </plugin>
-
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
       </plugin>
-      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -149,10 +133,8 @@
           </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
-
   <!-- Only used to publish javadoc with "site:deploy", 
        after they were generated -->
   <distributionManagement>
@@ -161,7 +143,6 @@
       <url>${site.baseurl}/committers/azuresearch/v2</url>
     </site>
   </distributionManagement>
-
   <url>https://opensource.norconex.com/committers/azuresearch</url>
   <scm>
     <url>https://github.com/Norconex/committer-azuresearch</url>
