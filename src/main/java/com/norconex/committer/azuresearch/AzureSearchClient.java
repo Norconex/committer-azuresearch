@@ -40,9 +40,8 @@ import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.client5.http.impl.win.WinHttpClients;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHost;
@@ -67,12 +66,12 @@ import com.norconex.commons.lang.security.Credentials;
  * <p>
  * Simple Microsoft Azure Search client.
  * </p>
+ * 
  * @author Pascal Essiembre
  */
 class AzureSearchClient {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(AzureSearchClient.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AzureSearchClient.class);
 
     private final AzureSearchCommitterConfig config;
     private final CloseableHttpClient client;
@@ -92,7 +91,7 @@ class AzureSearchClient {
             throw new IllegalArgumentException("Index name is undefined.");
         }
 
-        String version = ObjectUtils.defaultIfNull(
+        String version = ObjectUtils.getIfNull(
                 config.getApiVersion(),
                 AzureSearchCommitterConfig.DEFAULT_API_VERSION);
         LOG.info("Azure Search API Version: {}", version);
@@ -105,12 +104,11 @@ class AzureSearchClient {
     }
 
     private CloseableHttpClient createHttpClient() {
-        HttpClientBuilder builder;
-        if (config.isUseWindowsAuth() && WinHttpClients.isWinAuthAvailable()) {
-            builder = WinHttpClients.custom();
-        } else {
-            builder = HttpClientBuilder.create();
+        if (config.isUseWindowsAuth()) {
+            LOG.warn("Windows Authentication (useWindowsAuth) is no longer "
+                    + "supported. Falling back to standard HTTP client.");
         }
+        HttpClientBuilder builder = HttpClientBuilder.create();
 
         ProxySettings proxy = config.getProxySettings();
         if (proxy.isSet()) {
@@ -205,17 +203,29 @@ class AzureSearchClient {
         HttpPost post = new HttpPost(restURL);
         post.addHeader("api-key", config.getApiKey());
         post.setEntity(requestEntity);
-        try (CloseableHttpResponse response = client.execute(post)) {
-            handleResponse(response);
+        try {
+            client.execute(post, response -> {
+                try {
+                    handleResponse(response);
+                } catch (CommitterException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
+            });
             LOG.info("Done sending {} upserts/deletes to Azure Search.",
                     documentBatch.length());
         } catch (IOException e) {
             throw new CommitterException(
                     "Could not commit JSON batch to Azure Search.", e);
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof CommitterException) {
+                throw (CommitterException) e.getCause();
+            }
+            throw e;
         }
     }
 
-    private void handleResponse(CloseableHttpResponse res)
+    private void handleResponse(ClassicHttpResponse res)
             throws IOException, CommitterException {
         String responseAsString = "";
         HttpEntity entity = res.getEntity();
@@ -277,6 +287,7 @@ class AzureSearchClient {
         }
         return Optional.of(values);
     }
+
     private boolean forceArray(String field) {
         if (StringUtils.isBlank(config.getArrayFields())) {
             return false;
@@ -288,6 +299,7 @@ class AzureSearchClient {
         return ArrayUtils.contains(
                 config.getArrayFields().split("\\s*,\\s*"), field);
     }
+
     private boolean validateFieldName(String field) throws CommitterException {
         if (field.startsWith("azureSearch")) {
             validationError("Document field cannot begin "
@@ -307,6 +319,7 @@ class AzureSearchClient {
         }
         return true;
     }
+
     private boolean validateDocumentKey(String docId)
             throws CommitterException {
         if (docId.startsWith("_")) {
@@ -326,9 +339,11 @@ class AzureSearchClient {
     private void validationError(String errorMsg) throws CommitterException {
         error(errorMsg, config.isIgnoreValidationErrors());
     }
+
     private void responseError(String errorMsg) throws CommitterException {
         error(errorMsg, config.isIgnoreResponseErrors());
     }
+
     private void error(String errorMsg, boolean ignoreErrors)
             throws CommitterException {
         if (ignoreErrors) {
