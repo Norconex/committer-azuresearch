@@ -41,20 +41,33 @@ public class AzureSearchCommitterConfig implements Serializable {
     /** Default Azure Search content field */
     public static final String DEFAULT_AZURE_CONTENT_FIELD = "content";
 
-    // Configurables
+    /** Azure Search service endpoint URL. */
     private String endpoint;
+    /** Azure Search REST API version. */
     private String apiVersion = DEFAULT_API_VERSION;
+    /** Azure Search admin API key. */
     private String apiKey;
+    /** Target index name. */
     private String indexName;
+    /** Whether to skip Base64 encoding of the document key. */
     private boolean disableDocKeyEncoding;
+    /** Whether to log rather than throw on field validation errors. */
     private boolean ignoreValidationErrors;
+    /** Whether to log rather than throw on Azure Search response errors. */
     private boolean ignoreResponseErrors;
+    /** Comma-separated field names (or regex) to always send as arrays. */
     private String arrayFields;
+    /** Whether {@link #arrayFields} is a regular expression. */
     private boolean arrayFieldsRegex;
+    /** Whether to use integrated Windows Authentication (no longer supported). */
     private boolean useWindowsAuth;
+    /** HTTP proxy settings. */
     private final ProxySettings proxySettings = new ProxySettings();
+    /** Document field whose value is used as the Azure Search document key. */
     private String sourceKeyField;
+    /** Azure Search field name where the document key is stored. */
     private String targetKeyField = DEFAULT_AZURE_KEY_FIELD;
+    /** Azure Search field name where the document content is stored. */
     private String targetContentField = DEFAULT_AZURE_CONTENT_FIELD;
 
 	/**

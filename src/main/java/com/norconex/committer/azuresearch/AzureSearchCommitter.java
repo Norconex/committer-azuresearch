@@ -37,7 +37,7 @@ import com.norconex.commons.lang.xml.XML;
  * Commits documents to Microsoft Azure Search.
  * </p>
  *
- * <h3>Document reference encoding</h3>
+ * <h2>Document reference encoding</h2>
  * <p>
  * By default the document reference (Azure Search Document Key) is
  * encoded using URL-safe Base64 encoding. This is Azure Search recommended
@@ -169,9 +169,14 @@ public class AzureSearchCommitter extends AbstractBatchCommitter {
     @EqualsExclude
     private AzureSearchClient client;
 
+    /** Creates a new Azure Search committer with default configuration. */
     public AzureSearchCommitter() {
         this(new AzureSearchCommitterConfig());
     }
+    /**
+     * Creates a new Azure Search committer with the given configuration.
+     * @param config committer configuration
+     */
     public AzureSearchCommitter(AzureSearchCommitterConfig config) {
         this.config = Objects.requireNonNull(
                 config, "'config' must not be null.");
@@ -201,6 +206,10 @@ public class AzureSearchCommitter extends AbstractBatchCommitter {
         client = null;
     }
 
+    /**
+     * Gets this committer's configuration.
+     * @return committer configuration
+     */
     public AzureSearchCommitterConfig getConfig() {
         return config;
     }
